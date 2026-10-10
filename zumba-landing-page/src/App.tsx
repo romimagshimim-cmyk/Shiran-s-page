@@ -44,30 +44,36 @@ export default function App() {
       }
 
       // 2. שליחת מייל תודה ללקוח באמצעות EmailJS
+      // 2. שליחת מייל תודה ללקוח באמצעות EmailJS
       const EMAILJS_SERVICE_ID = 'service_3fuopvh';
       const EMAILJS_TEMPLATE_ID = 'template_xc1mbpd';
       const EMAILJS_PUBLIC_KEY = 'PqtnW83lm59F-g6qk';
 
-      if (EMAILJS_SERVICE_ID == 'service_3fuopvh') {
-        await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            service_id: EMAILJS_SERVICE_ID,
-            template_id: EMAILJS_TEMPLATE_ID,
-            user_id: EMAILJS_PUBLIC_KEY,
-            template_params: {
-              to_name: formData.name,
-              to_email: formData.email,
-              // אפשר להוסיף כאן עוד פרטים שיופיעו במייל
-            }
-          })
-        });
+      const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          service_id: EMAILJS_SERVICE_ID,
+          template_id: EMAILJS_TEMPLATE_ID,
+          user_id: EMAILJS_PUBLIC_KEY,
+          template_params: {
+            to_name: formData.name,
+            to_email: formData.email,
+          }
+        })
+      });
+
+      // גלאי השגיאות שלנו: אם התשובה מהשרת היא לא "OK"
+      if (!emailResponse.ok) {
+        const errorText = await emailResponse.text();
+        alert('השרת של EmailJS החזיר שגיאה: ' + errorText);
+        setIsSubmitting(false);
+        return; // עוצרים כאן ולא מציגים הודעת הצלחה
       }
 
-      // הצגת הודעת ההצלחה המעוצבת
+      // רק אם השרת אישר שהמייל נשלח, נציג את ההודעה היפה
       setIsSuccess(true);
       
     } catch (error) {
