@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, MapPin, Phone, Clock, User, CheckCircle } from 'lucide-react';
+import {Phone, Clock, User, CheckCircle } from 'lucide-react';
 import './App.css';
 
 type Page = 'home' | 'about' | 'schedule' | 'register';
