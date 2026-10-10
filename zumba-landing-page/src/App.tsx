@@ -22,9 +22,9 @@ export default function App() {
 
     try {
       // 1. שליחה לגוגל שיטס (ללא תאריך, בדיוק כפי שביקשת)
-      const GOOGLE_SHEET_API_URL = 'הכניסי_כאן_את_הכתובת_שתקבלי_משלב_הגוגל_שיטס'; 
+      const GOOGLE_SHEET_API_URL = 'https://sheetdb.io/api/v1/evlmr7as2owqd'; 
       
-      if (GOOGLE_SHEET_API_URL !== 'הכניסי_כאן_את_הכתובת_שתקבלי_משלב_הגוגל_שיטס') {
+      if (GOOGLE_SHEET_API_URL == 'https://sheetdb.io/api/v1/evlmr7as2owqd') {
         await fetch(GOOGLE_SHEET_API_URL, {
           method: 'POST',
           headers: {
@@ -48,7 +48,7 @@ export default function App() {
       const EMAILJS_TEMPLATE_ID = 'template_xc1mbpd';
       const EMAILJS_PUBLIC_KEY = 'PqtnW83lm59F-g6qk';
 
-      if (EMAILJS_SERVICE_ID !== 'service_3fuopvh') {
+      if (EMAILJS_SERVICE_ID == 'service_3fuopvh') {
         await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
           headers: {
@@ -355,7 +355,9 @@ export default function App() {
             <div className="space-y-3">
               <div className="flex justify-center md:justify-start items-center gap-2">
                 <Phone size={18} className="text-[#B7D928]" />
-                <span dir="ltr" className="text-white font-medium">050-579-4659</span>
+                <a href="tel:0501234567" className="text-[#B7D928] hover:underline">
+                  התקשרו אלינו
+                </a>
               </div>
             </div>
           </div>
