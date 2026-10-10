@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+
+:root {
+  /* Zumba "Classic Burst" Palette */
+  --text: #2E2E2E;          /* Charcoal */
+  --text-h: #08060d;
+  --bg: #ffffff;            /* Clean white background */
+  --border: #FDE026;        /* Bright Lemon */
+  --code-bg: #f8f9fa;
+  --accent: #E81E76;        /* Hot Pink */
+  --accent-bg: rgba(232, 30, 118, 0.1); 
+  --accent-border: #B7D928; /* Electric Lime */
+  --social-bg: rgba(183, 217, 40, 0.2);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  /* Typography updated to Heebo for Hebrew */
+  --sans: 'Heebo', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: 'Heebo', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light; /* Zumba stays bright, dark mode omitted to keep energy high */
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+#root {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: right; /* Aligned for Hebrew */
+  direction: rtl;    /* Forced RTL direction */
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+}
+
+h1,
+h2 {
+  font-family: var(--heading);
+  font-weight: 700; /* Bolder headers for Zumba energy */
+  color: var(--text-h);
+}
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  color: var(--accent); /* Highlighting H1 in Hot Pink */
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+}
+
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+  border: 1px solid var(--accent-border);
+}
