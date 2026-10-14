@@ -1,30 +1,40 @@
 import React, { useState } from 'react';
-import {Phone, Clock, User, CheckCircle } from 'lucide-react';
+import { Phone, Clock, User, CheckCircle, MapPin, ChevronDown, ChevronUp, Mail, X } from 'lucide-react';
 import './App.css';
 
-type Page = 'home' | 'about' | 'schedule' | 'register';
+type Page = 'home' | 'about' | 'schedule' | 'register' | 'faq';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isContactPopupOpen, setIsContactPopupOpen] = useState(false);
   
+  // הוספנו את שדה classType לטופס
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    email: ''
+    email: '',
+    classType: '' 
   });
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // משתנה חדש שאחראי להציג את הודעת ההצלחה היפה
   const [isSuccess, setIsSuccess] = useState(false);
+  
+  // State for FAQ Accordion
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const toggleFaq = (index: number) => {
+    setOpenFaq(openFaq === index ? null : index);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); 
     setIsSubmitting(true);
 
     try {
-      // 1. שליחה לגוגל שיטס (ללא תאריך, בדיוק כפי שביקשת)
-      const GOOGLE_SHEET_API_URL = 'https://sheetdb.io/api/v1/evlmr7as2owqd'; 
+      const GOOGLE_SHEET_API_URL = 'הכניסי_כאן_את_הכתובת_שתקבלי_משלב_הגוגל_שיטס'; 
       
-      if (GOOGLE_SHEET_API_URL == 'https://sheetdb.io/api/v1/evlmr7as2owqd') {
+      if (GOOGLE_SHEET_API_URL !== 'הכניסי_כאן_את_הכתובת_שתקבלי_משלב_הגוגל_שיטס') {
         await fetch(GOOGLE_SHEET_API_URL, {
           method: 'POST',
           headers: {
@@ -36,15 +46,14 @@ export default function App() {
               {
                 'שם מלא': formData.name,
                 'טלפון': formData.phone,
-                'מייל': formData.email
+                'מייל': formData.email,
+                'סוג שיעור': formData.classType // הנתון החדש נשלח לגוגל שיטס
               }
             ]
           })
         });
       }
 
-      // 2. שליחת מייל תודה ללקוח באמצעות EmailJS
-      // 2. שליחת מייל תודה ללקוח באמצעות EmailJS
       const EMAILJS_SERVICE_ID = 'service_3fuopvh';
       const EMAILJS_TEMPLATE_ID = 'template_xc1mbpd';
       const EMAILJS_PUBLIC_KEY = 'PqtnW83lm59F-g6qk';
@@ -61,19 +70,18 @@ export default function App() {
           template_params: {
             to_name: formData.name,
             to_email: formData.email,
+            class_type: formData.classType
           }
         })
       });
 
-      // גלאי השגיאות שלנו: אם התשובה מהשרת היא לא "OK"
       if (!emailResponse.ok) {
         const errorText = await emailResponse.text();
-        alert('השרת של EmailJS החזיר שגיאה: ' + errorText);
+        alert('הייתה בעיה בשליחת המייל: ' + errorText);
         setIsSubmitting(false);
-        return; // עוצרים כאן ולא מציגים הודעת הצלחה
+        return;
       }
 
-      // רק אם השרת אישר שהמייל נשלח, נציג את ההודעה היפה
       setIsSuccess(true);
       
     } catch (error) {
@@ -85,9 +93,33 @@ export default function App() {
 
   const resetForm = () => {
     setIsSuccess(false);
-    setFormData({ name: '', phone: '', email: '' });
+    setFormData({ name: '', phone: '', email: '', classType: '' });
     setCurrentPage('home');
   };
+
+  const handlePhoneClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (window.innerWidth < 768) {
+      window.location.href = 'tel:0505794659';
+    } else {
+      setIsContactPopupOpen(true);
+    }
+  };
+
+  const faqs = [
+    { q: "מה זה זומבה אימהות-נערות?", a: "שעה מושלמת של ניתוק מוחלט. זהו שילוב מושלם של זמן איכות אימא-בת עם אנרגיות שיא וקצב מטורף! בשיעור אנחנו משאירות את המסכים בצד, מזיזות את הגוף, מחייכות ויוצרות חוויה משותפת ומקרבת. המוזיקה סוחפת, האווירה משפחתית ועוטפת, והחיוך לא יורד מהפנים. מוכנות לגלות כמה כיף לרקוד יחד?" },
+    { q: "מה זה זומבה קידס ג'וניור?", a: "חוויית תנועה, קצב ומשחק שתוכננה במיוחד עבור קטנטנים בני ארבע עד שש. השיעור משלב מיומנויות מוטוריות, פיתוח קואורדינציה וביטחון עצמי ששזורים במשחקים מקפיצים, שירים אהובים והמון שמחה. הקטנטנים לומדים לאהוב את עולם התנועה בדרך החווייתית והטבעית ביותר. הסקרנות שלהם מתעוררת כבר מהצליל הראשון, והחיוך איתו ישובו הביתה... הוא שווה הכול! רוצים לראות את הכוכב הפרטי שלכם זורח על הרחבה?" },
+    { q: "האם זומבה באמת נחשבת לאימון כושר אפקטיבי ששורף קלוריות?", a: "עוד איך! מדובר באימון אירובי מלא שמשלב עבודה על סיבולת לב-ריאה, חיזוק שרירים, עיצוב וגמישות- והכל תוך כדי ריקוד. בשעה אחת של זומבה אפשר לשרוף מאות קלוריות בלי להרגיש בכלל שהזמן עבר. הסוד הוא שכשרוקדים ונהנים, האימון מפסיק להיות מטלה, ולכן קל מאוד להתמיד ולהגיע לתוצאות מעולות. באה לשרוף קלוריות (ואת הרחבה) בחיוך?" },
+    { q: "מה מיוחד באווירה בסטודיו שלכן?", a: "הסטודיו שלנו הוא קודם כל בית חם, עוטף ומשפחתי. מעבר לריקוד ולכושר, אנחנו שואפות לייצר קהילה מדהימה של נשים, אימהות וילדים שתומכים, שמחים ומעלים את האנרגיה האחד לשני. אצלנו אין שום שיפוטיות או מבטים- רק פירגון הדדי, צחוק ושחרור אמיתי מתלאות היום. מחכות לראות אותך איתנו!" },
+    { q: "אין לי קואורדינציה, אני יכולה להצטרף לאימון?", a: "חד משמעית כן. אפילו תופתעי לגלות שזה המקום הכי נכון עבורך! בזומבה אין \"טעויות\"- יש צעדים בסגנון האישי והמיוחד שלך. אנחנו לא מודדות דיוק, אלא חוות את הקצב, מזיעות, מפתחות קואורדינציה בהדרגתיות ובעיקר משחררות. ברגע שתפתחי את הדלת ותתני למוזיקה להוביל, תראי שזה הרבה יותר קל ומהנה ממה שדמיינת. באה לעשות איתנו את הצעד הראשון?" },
+    { q: "האם נדרש ניסיון קודם בריקוד כדי להצטרף לאימון?", a: "ממש לא! השיעורים מותאמים לכולן ולכולם, מהצעד הראשון ועד לרקדנים מנוסים. התנועות פשוטות, קלילות ומחזוריות, כך שקל מאוד להתחבר ולזרום עם הקצב תוך שירים ספורים. כל מה שאת צריכה זה רצון לזוז, ליהנות ולהרגיש טוב עם עצמך. תתפלאי לראות כמה מהר תמצאי את הקצב שלך- מוזמנת להגיע ולגלות עד כמה זה פשוט!" },
+    { q: "מה צריך להביא לשיעור?", a: "בקבוק מים צונן, מגבת קטנה, נעלי ספורט נוחות והמון מצב רוח טוב! מומלץ לבוא בלבוש נוח שמאפשר לזוז בחופשיות ולהזיע בחיוך. את כל השאר- המוזיקה המקפיצה, האנרגיות המטורפות והחיוכים, אנחנו נספק. השיעור הראשון מלא בקצב, הפתעות וחיבור שפשוט אי אפשר להסביר במילים. אורזת תיק ובאה לחגוג איתנו?" },
+    { q: "מה עושים אם יש לי קצת חוסר ביטחון להשתחרר ולרקוד ליד כולן?", a: "הסוד של זומבה הוא שבמהלך השיעור כולן מרוכזות בעצמן, במוזיקה ובצעדים שלהן- ואף אחת לא מסתכלת סביב! הסטודיו שלנו הוא מרחב בטוח, מקבל ועוטף, שבו כל החששות נעלמים כבר בשיר הראשון. האווירה והאנרגיות על הרחבה הופכות את החלל למסיבה שבה כולן מרגישות הכי בבית בעולם. השיעור הראשון הוא בדיוק המקום לגלות איזה שחרור מופלא מחכה לך כשרק מעזים. מתי אנחנו נפגשות לרקוד ולשחרר הכול?" },
+    { q: "לא התעמלתי המון זמן, האם האימון מתאים לי?", a: "לחלוטין! הזומבה נבנתה בקצב שמאפשר לכל אחת ואחד להתקדם לפי הרמה האישית שלהם. בשיעור את קובעת את עוצמת התנועה- אפשר לקפוץ גבוה ואפשר לקחת צעדים מתונים יותר, הכול בהקשבה מלאה לגוף שלך. המטרה שלנו היא קודם כל ליהנות ולבנות סיבולת בהדרגתיות ובחיוך. כשתראי כמה מהר הגוף נזכר ונכנס למקצב, תופתעי בעצמך. באה לחזור לכושר בדרך הכי כיפית שיש?" },
+    { q: "אפשר להגיע לשיעור ניסיון לפני שנרשמים?", a: "ברור, ואפילו מומלץ בחום! הדרך הכי טובה להבין את האנרגיה, הקצב והאווירה הקהילתית שלנו היא פשוט לחוות אותה מקרוב על הרחבה. שיעור הניסיון ייתן לך טעם של עוד ויאפשר לך להרגיש אם זה החיבור הנכון עבורך- ללא שום התחייבות. כל מה שצריך זה לתאם איתנו מראש ולהגיע עם הרבה מצב רוח טוב. מוכנה לטעום מהקסם?" },
+    { q: "מאיזה גיל אפשר להצטרף לשיעורי הילדים והנוער?", a: "השיעורים שלנו מותאמים לקבוצות גיל שונות, החל מגילאי הגן והגיל הרך ועד לנערות ובוגרות! לכל קבוצת גיל יש את הקצב, המוזיקה והדגשים ההתפתחותיים המתאימים לה. בזכות ההתמחות המיוחדת שלי בתנועה לגיל הרך והניסיון שלי כמורה, הילדים מקבלים מעטפת מעצימה, בטוחה ומלאת שמחה. רוצה לדעת באיזו קבוצה הילד/ה שלך יפרחו? ספרי לנו בני כמה הם ונשמח להתאים!" },
+    { q: "אני רוצה להגיע לבד לשיעור אימהות ונערות – זה מתאים?", a: "ברור ולגמרי כן! הסטודיו שלנו פתוח ומחבק את כולן- אימהות, נערות ונשים שמגיעות לעשות משהו נפלא בשביל עצמן. שיעורי הבוגרות הם בדיוק המקום שלך להתנתק לרגע משגרת הבית, למלא מצברים ולפרגן לעצמך שעה של חופש, אנרגיות וכיף טהור. את ממש לא צריכה את הפרטנרית שלך כדי להיות חלק מהמשפחה שלנו. מוכנה לבוא לרקוד איתנו?" }
+  ];
 
   const renderContent = () => {
     switch (currentPage) {
@@ -102,22 +134,22 @@ export default function App() {
               <p className="text-lg md:text-xl text-gray-700 font-medium">
                 הצטרפו לקהילת הזומבה המובילה, שרפו קלוריות עם חיוך והיכנסו לכושר באווירה של מסיבה. מתאים לכל הגילאים ולכל הרמות.
               </p>
-              <div className="flex gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button 
                   onClick={() => setCurrentPage('register')}
-                  className="bg-[#E81E76] text-white px-8 py-3 rounded-full font-bold text-lg hover:bg-[#c91866] transition-colors shadow-lg"
+                  className="bg-[#E81E76] text-white px-8 py-3 rounded-full font-bold text-lg hover:bg-[#c91866] transition-colors shadow-lg text-center"
                 >
                   הצטרפי עכשיו
                 </button>
                 <button 
                   onClick={() => setCurrentPage('schedule')}
-                  className="bg-[#B7D928] text-[#2E2E2E] px-8 py-3 rounded-full font-bold text-lg hover:bg-[#a3c223] transition-colors shadow-lg"
+                  className="bg-[#B7D928] text-[#2E2E2E] px-8 py-3 rounded-full font-bold text-lg hover:bg-[#a3c223] transition-colors shadow-lg text-center"
                 >
                   מערכת שעות
                 </button>
               </div>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 w-full mt-8 md:mt-0">
               <img 
                 src="/IMG-20260830-WA0078.jpg" 
                 alt="זומבה אנרגיה" 
@@ -129,38 +161,76 @@ export default function App() {
 
       case 'about':
         return (
-          <div className="py-12 px-6 max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-black text-[#2E2E2E] mb-4">מי אנחנו?</h2>
-              <div className="w-24 h-2 bg-[#E81E76] mx-auto rounded-full"></div>
+          <div className="py-12 px-6 max-w-4xl mx-auto">
+            <div className="bg-white p-8 md:p-12 rounded-3xl shadow-lg border-t-8 border-[#B7D928] mb-12">
+              <div className="text-center mb-8">
+                <h2 className="text-4xl font-black text-[#2E2E2E] mb-4">הולה, איזה כיף שהגעת לכאן!</h2>
+                <div className="w-24 h-2 bg-[#E81E76] mx-auto rounded-full"></div>
+              </div>
+              <div className="space-y-4 text-lg text-gray-700 leading-relaxed">
+                <p>
+                  נעים להכיר, אני <strong>שירן</strong>, מדריכת זומבה ומאמנת סטודיו מוסמכת עם חמש שנות ניסיון בעולם הכושר וההדרכה, ורוקדת זומבה מעל 15 שנים (מכורה אמיתית). 
+                </p>
+                <p>
+                  לפני חמש שנים החלטתי לשנות כיוון ולהפוך את הספורט והתשוקה שלי לדרך חיים אמיתית. בשנה האחרונה העמקתי והשלמתי התמחות מיוחדת בתנועה לגיל הרך ולגיל הזהב.
+                </p>
+                <p>
+                  מעבר לסטודיו, אני מורה ומחנכת, וכך זכיתי לשלב את שתי האהבות הגדולות שלי בחיים: חינוך הדור הצעיר ותנועה בכיף. הזומבה עבורי היא הרבה מעבר לאימון כושר, היא דרך חיים שמשלבת בין פעילות גופנית לבין שחרור, אנרגיות שיא וכיף טהור. עבורי, אימון הוא לא מטלה או עונש, אלא מסיבה אחת גדולה שבה מזיעים, משתחררים ומחייכים.
+                </p>
+                <p>
+                  הזומבה היא חלק בלתי נפרד מהמשפחה שלנו, אפילו לידתה של הלל, הבת שלי, החלה תוך כדי אימון זומבה! היום, הלל כבר בת עשר, אחרי ארבע שנים בהן רקדה היפ הופ, היא מצטרפת אליי לצוות ההדרכה ומלווה את השיעורים שלנו באנרגיות מטורפות!
+                </p>
+                <p>
+                  הסטודיו שלנו הוא בית חם, מקבל ומשפחתי. אנחנו מזמינות ילדים וילדות, נערות ואימהות להצטרף אלינו לשעה של כיף, מלאה בקצב, בשמחה, בחיבור וביחד.
+                </p>
+                <p className="text-xl font-bold text-[#E81E76] mt-6 text-center">
+                  נפגש על הרחבה,<br/>שירן והלל 💛
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                <img src="/IMG-20260830-WA0082.jpg" alt="שירן מדריכה" className="w-full h-64 object-cover rounded-2xl shadow-md border-2 border-[#FDE026]" />
+                <img src="/IMG-20260830-WA0081.jpg" alt="אימון" className="w-full h-64 object-cover rounded-2xl shadow-md border-2 border-[#E81E76]" />
+              </div>
             </div>
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div className="space-y-6 text-lg text-gray-700">
-                <p>
-                  אנחנו מאמינים שכושר לא צריך להיות משעמם או להרגיש כמו מטלה. בזומבה, אנחנו הופכים כל אימון למסיבה לטינית סוחפת.
-                </p>
-                <p>
-                  הסטודיו שלנו מציע יחס אישי, אנרגיות שירימו אתכם לשמיים, וקהילה תומכת של מתאמנים בכל הגילאים. בין אם אתם רק מתחילים או כבר רקדנים מנוסים, יש מקום לכולם ברחבה שלנו.
-                </p>
-                <button 
-                  onClick={() => setCurrentPage('register')}
-                  className="mt-6 border-2 border-[#E81E76] text-[#E81E76] px-6 py-2 rounded-full font-bold hover:bg-[#E81E76] hover:text-white transition-colors"
-                >
-                  בואו לנסות
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <img 
-                  src="/IMG-20260830-WA0082.jpg" 
-                  alt="מדריכת זומבה" 
-                  className="w-full h-64 object-cover rounded-2xl shadow-lg border-2 border-[#B7D928]"
-                />
-                <img 
-                  src="/IMG-20260830-WA0081.jpg" 
-                  alt="אימון זומבה" 
-                  className="w-full h-64 object-cover rounded-2xl shadow-lg border-2 border-[#FDE026] mt-8"
-                />
-              </div>
+            <div className="text-center mt-10">
+              <button 
+                onClick={() => setCurrentPage('register')}
+                className="bg-[#E81E76] text-white px-10 py-4 rounded-full font-bold text-xl hover:bg-[#c91866] transition-colors shadow-xl"
+              >
+                בואו לנסות - השאירו פרטים
+              </button>
+            </div>
+          </div>
+        );
+
+      case 'faq':
+        return (
+          <div className="py-12 px-6 max-w-4xl mx-auto">
+            <div className="text-center mb-10">
+              <h2 className="text-4xl font-black text-[#2E2E2E] mb-3">שאלות נפוצות</h2>
+              <div className="w-24 h-2 bg-[#FDE026] mx-auto rounded-full"></div>
+            </div>
+            
+            <div className="space-y-4">
+              {faqs.map((faq, index) => (
+                <div key={index} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <button 
+                    onClick={() => toggleFaq(index)}
+                    className="w-full flex justify-between items-center p-5 text-right hover:bg-gray-50 transition-colors focus:outline-none"
+                  >
+                    <span className="font-bold text-[#2E2E2E] text-lg pr-4">{faq.q}</span>
+                    <div className="text-[#E81E76] bg-[#E81E76]/10 p-2 rounded-full flex-shrink-0">
+                      {openFaq === index ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </div>
+                  </button>
+                  {openFaq === index && (
+                    <div className="p-5 pt-0 text-gray-600 bg-gray-50/50 leading-relaxed border-t border-gray-100 animate-fade-in">
+                      {faq.a}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -174,25 +244,27 @@ export default function App() {
             </div>
             <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
               {[
-                { day: 'שני', time: '20:30 - 21:30', name: 'זומבה נשים', place: 'סטודיו גלגולים - כרמיאל, המגל 10', trainer: 'שירן גפן' },
-                { day: 'רביעי', time: '16:15 - 17:15', name: "זומבה קידס ג'וניור", place: 'מועדון חברים - מכמנים', trainer: 'שירן גפן' },
-                { day: 'רביעי', time: '17:30 - 18:30', name: 'זומבה אימהות ובנות', place: 'מועדון חברים - מכמנים', trainer: 'שירן גפן' },
-                { day: 'חמישי', time: '20:30 - 21:30', name: 'זומבה נשים', place: 'סטודיו גלגולים - כרמיאל, המגל 10', trainer: 'שירן גפן' },
+                { day: 'רביעי', time: '16:45 - 17:45', name: "זומבה קידס ג'וניור", place: 'מועדון חברים - מכמנים', trainer: 'שירן גפן', link: 'https://waze.com/ul' },
+                { day: 'רביעי', time: '18:00 - 19:00', name: 'זומבה אימהות ונערות', place: 'מועדון חברים - מכמנים', trainer: 'שירן גפן', link: 'https://waze.com/ul' },
               ].map((cls, idx) => (
-                <div key={idx} className="flex flex-col md:flex-row justify-between items-center p-6 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center gap-4 mb-4 md:mb-0">
-                    <div className="bg-[#FDE026] text-[#2E2E2E] w-16 h-16 rounded-full flex flex-col items-center justify-center font-bold shadow-sm">
+                <div key={idx} className="flex flex-col md:flex-row justify-between items-center p-6 border-b border-gray-100 hover:bg-gray-50 transition-colors gap-6 md:gap-0">
+                  <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="bg-[#FDE026] text-[#2E2E2E] w-16 h-16 rounded-full flex flex-col items-center justify-center font-bold shadow-sm flex-shrink-0">
                       <span>{cls.day}</span>
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-[#2E2E2E]">{cls.name}</h3>
                       <div className="flex items-center gap-2 text-gray-500 mt-1">
-                        <Clock size={16} />
+                        <Clock size={16} className="text-[#B7D928]"/>
                         <span>{cls.time}</span>
                       </div>
+                      <a href={cls.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-500 mt-1 hover:text-[#E81E76] transition-colors w-fit">
+                        <MapPin size={16} className="text-[#E81E76]"/>
+                        <span>{cls.place}</span>
+                      </a>
                     </div>
                   </div>
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center justify-between w-full md:w-auto gap-6">
                     <div className="flex items-center gap-2 text-gray-600">
                       <User size={16} className="text-[#E81E76]"/>
                       <span>{cls.trainer}</span>
@@ -207,6 +279,9 @@ export default function App() {
                 </div>
               ))}
             </div>
+            <div className="mt-8 text-center text-gray-500">
+              <p>* מערכת השעות מתעדכנת מעת לעת. מומלץ ליצור קשר כדי לתאם שיעור ניסיון מראש.</p>
+            </div>
           </div>
         );
 
@@ -215,7 +290,6 @@ export default function App() {
           <div className="py-12 px-6 max-w-5xl mx-auto flex flex-col md:flex-row gap-12 items-center">
             <div className="flex-1 w-full bg-white p-8 rounded-3xl shadow-2xl border-t-8 border-[#E81E76] min-h-[450px] flex flex-col justify-center">
               
-              {/* מציג את הודעת ההצלחה אם המשתמש סיים בהצלחה, אחרת מציג את הטופס */}
               {isSuccess ? (
                 <div className="text-center space-y-6 animate-fade-in">
                   <div className="w-24 h-24 bg-[#B7D928] text-white rounded-full flex items-center justify-center mx-auto shadow-lg">
@@ -247,7 +321,7 @@ export default function App() {
                         value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
                         className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-[#E81E76] focus:ring-1 focus:ring-[#E81E76]" 
-                        placeholder="שירן גפן" 
+                        placeholder="שם ומשפחה" 
                       />
                     </div>
                     <div>
@@ -258,7 +332,7 @@ export default function App() {
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
                         className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-[#E81E76] focus:ring-1 focus:ring-[#E81E76]" 
-                        placeholder="050-579-4659" 
+                        placeholder="05X-XXXXXXX" 
                       />
                     </div>
                     <div>
@@ -269,9 +343,25 @@ export default function App() {
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                         className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-[#E81E76] focus:ring-1 focus:ring-[#E81E76]" 
-                        placeholder="shiran@example.com" 
+                        placeholder="your@email.com" 
                       />
                     </div>
+                    
+                    {/* תפריט בחירת שיעור */}
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">לאיזה שיעור תרצו להצטרף?</label>
+                      <select 
+                        required
+                        value={formData.classType}
+                        onChange={(e) => setFormData({...formData, classType: e.target.value})}
+                        className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-[#E81E76] focus:ring-1 focus:ring-[#E81E76] bg-white text-gray-700" 
+                      >
+                        <option value="" disabled>בחרי שיעור...</option>
+                        <option value="זומבה קידס ג'וניור">זומבה קידס ג'וניור</option>
+                        <option value="זומבה אימהות ונערות">זומבה אימהות ונערות</option>
+                      </select>
+                    </div>
+
                     <button 
                       disabled={isSubmitting}
                       className={`w-full text-white font-bold text-lg p-4 rounded-xl mt-4 shadow-lg transition-colors
@@ -283,11 +373,11 @@ export default function App() {
                 </>
               )}
             </div>
-            <div className="flex-1 hidden md:block">
+            <div className="flex-1 w-full mt-8 md:mt-0">
               <img 
                 src="/IMG-20260830-WA0089.jpg" 
                 alt="מתיחות וזומבה" 
-                className="w-full h-auto rounded-3xl shadow-xl transform rotate-2 hover:rotate-0 transition-transform duration-300 border-4 border-[#B7D928]"
+                className="w-full h-auto rounded-3xl shadow-xl transform md:rotate-2 md:hover:rotate-0 transition-transform duration-300 border-4 border-[#B7D928]"
               />
             </div>
           </div>
@@ -297,28 +387,53 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-heebo bg-[#ffffff]" dir="rtl">
+      {/* פופ-אפ יצירת קשר למחשב */}
+      {isContactPopupOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center relative shadow-2xl animate-fade-in border-t-8 border-[#E81E76]">
+            <button 
+              onClick={() => setIsContactPopupOpen(false)} 
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors"
+            >
+              <X size={24} />
+            </button>
+            <div className="w-16 h-16 bg-[#B7D928] text-[#2E2E2E] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Phone size={32} />
+            </div>
+            <h3 className="text-2xl font-black text-[#2E2E2E] mb-2">דברו איתנו</h3>
+            <p className="text-gray-600 mb-6">מוזמנים להתקשר ולתאם אימון ניסיון</p>
+            <a href="tel:0505794659" className="text-3xl font-bold text-[#E81E76] hover:underline" dir="ltr">
+              050-579-4659
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
           <div 
-            className="cursor-pointer" 
-            onClick={() => setCurrentPage('home')}
+            className="cursor-pointer z-50" 
+            onClick={() => {
+              setCurrentPage('home');
+              setIsMobileMenuOpen(false);
+            }}
           >
-            <img src="/zumba-fitness-seeklogo.svg" alt="Zumba Logo" className="h-12 md:h-16" />
+            <img src="/zumba-fitness-seeklogo.svg" alt="Zumba Logo" className="h-10 sm:h-12 md:h-16" />
           </div>
           
           <nav className="hidden md:flex gap-8 font-bold text-lg text-[#2E2E2E]">
-            <button 
-              onClick={() => setCurrentPage('home')} 
-              className={`hover:text-[#E81E76] transition-colors ${currentPage === 'home' ? 'text-[#E81E76]' : ''}`}
-            >
-              ראשי
-            </button>
             <button 
               onClick={() => setCurrentPage('about')}
               className={`hover:text-[#E81E76] transition-colors ${currentPage === 'about' ? 'text-[#E81E76]' : ''}`}
             >
               אודות
+            </button>
+            <button 
+              onClick={() => setCurrentPage('faq')}
+              className={`hover:text-[#E81E76] transition-colors ${currentPage === 'faq' ? 'text-[#E81E76]' : ''}`}
+            >
+              שאלות נפוצות
             </button>
             <button 
               onClick={() => setCurrentPage('schedule')}
@@ -335,51 +450,99 @@ export default function App() {
           </nav>
 
           <button 
-            className="md:hidden bg-[#E81E76] text-white px-4 py-2 rounded-full font-bold"
-            onClick={() => setCurrentPage('register')}
+            className="md:hidden p-2 text-gray-600 focus:outline-none z-50"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            הרשמה
+            <div className="w-6 h-5 flex flex-col justify-between">
+              <span className={`block h-0.5 w-full bg-current transform transition duration-300 ease-in-out ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+              <span className={`block h-0.5 w-full bg-current transition duration-300 ease-in-out ${isMobileMenuOpen ? 'opacity-0' : ''}`} />
+              <span className={`block h-0.5 w-full bg-current transform transition duration-300 ease-in-out ${isMobileMenuOpen ? '-rotate-45 -translate-y-2.5' : ''}`} />
+            </div>
           </button>
         </div>
+
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-white border-t border-gray-100 shadow-xl py-4 px-6 flex flex-col gap-4 text-center z-40 animate-fade-in">
+            <button 
+              onClick={() => { setCurrentPage('about'); setIsMobileMenuOpen(false); }}
+              className={`text-lg font-bold py-2 ${currentPage === 'about' ? 'text-[#E81E76]' : 'text-gray-700'}`}
+            >
+              אודות
+            </button>
+            <button 
+              onClick={() => { setCurrentPage('faq'); setIsMobileMenuOpen(false); }}
+              className={`text-lg font-bold py-2 border-t border-gray-50 ${currentPage === 'faq' ? 'text-[#E81E76]' : 'text-gray-700'}`}
+            >
+              שאלות נפוצות
+            </button>
+            <button 
+              onClick={() => { setCurrentPage('schedule'); setIsMobileMenuOpen(false); }}
+              className={`text-lg font-bold py-2 border-t border-gray-50 ${currentPage === 'schedule' ? 'text-[#E81E76]' : 'text-gray-700'}`}
+            >
+              מערכת שעות
+            </button>
+            <button 
+              onClick={() => { setCurrentPage('register'); setIsMobileMenuOpen(false); }}
+              className="bg-[#E81E76] text-white px-6 py-3 rounded-full font-bold text-lg mt-2 shadow-md"
+            >
+              הרשמה
+            </button>
+          </div>
+        )}
       </header>
 
-      {/* Main Content Area */}
       <main className="flex-grow">
         {renderContent()}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#2E2E2E] text-white py-12 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8 text-center md:text-right">
+      <footer id="contact-footer" className="bg-[#2E2E2E] text-white py-12 mt-auto">
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center text-center md:text-right">
           <div>
             <img src="/zumba-fitness-seeklogoonecolor.svg" alt="Zumba" className="h-12 mb-4 mx-auto md:mx-0 filter brightness-0 invert" />
             <p className="text-white">הצטרפו למסיבת הכושר הטובה ביותר בעיר.</p>
           </div>
           
-          <div>
-            <h4 className="text-xl font-bold !text-white mb-4">יצירת קשר</h4>
-            <div className="space-y-3">
-              <div className="flex justify-center md:justify-start items-center gap-2">
-                <Phone size={18} className="text-[#B7D928]" />
-                <a href="tel:0501234567" className="text-[#B7D928] hover:underline">
-                  התקשרו אלינו
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <h4 className="text-xl font-bold !text-white mb-4">עקבו אחרינו</h4>
-            <div className="flex justify-center md:justify-start gap-4">
-              <a href="#" className="bg-white/10 p-3 rounded-full hover:bg-[#E81E76] transition-colors text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div className="md:text-left">
+            <h4 className="text-xl font-bold !text-white mb-4">יצירת קשר / עקבו אחרינו</h4>
+            <div className="flex justify-center md:justify-end gap-4 flex-wrap">
+              <button 
+                onClick={handlePhoneClick}
+                className="bg-white/10 p-3 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
+                aria-label="Phone"
+              >
+                <Phone size={24} className="group-hover:scale-110 transition-transform" />
+              </button>
+              
+              <a 
+                href="mailto:shirangefen@gmail.com" 
+                className="bg-white/10 p-3 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
+                aria-label="Email"
+              >
+                <Mail size={24} className="group-hover:scale-110 transition-transform" />
+              </a>
+
+              <a 
+                href="https://www.instagram.com/shiran.gefen/" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="bg-white/10 p-3 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
+                aria-label="Instagram"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform">
                   <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
                   <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
                   <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
                 </svg>
               </a>
-              <a href="#" className="bg-white/10 p-3 rounded-full hover:bg-[#E81E76] transition-colors text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+
+              <a 
+                href="https://www.facebook.com/shiranigorgefen" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="bg-white/10 p-3 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
+                aria-label="Facebook"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform">
                   <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
                 </svg>
               </a>
