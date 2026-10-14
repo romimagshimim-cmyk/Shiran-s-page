@@ -66,7 +66,7 @@ export default function App() {
             day: row.c[3]?.v || '',
             trainer: row.c[4]?.v || '',
             place: row.c[5]?.v || '',
-            link: 'https://waze.com/ul' // קבוע כרגע (ניתן להוסיף עמודת קישור בעתיד)
+            link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(row.c[5]?.v || '')}`
           };
         }).filter((item: any) => item.name !== '');
 
@@ -187,7 +187,7 @@ export default function App() {
                 הגיע הזמן <span className="text-[#B7D928]">לזומבה!</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-700 font-medium">
-                הצטרפו לקהילת הזומבה המובילה, שרפו קלוריות עם חיוך והיכנסו לכושר באווירה של מסיבה. מתאים לכל הגילאים ולכל הרמות.
+               הצטרפו לקהילת הזומבה המובילה, שרפו קלוריות עם חיוך והיכנסו לכושר באווירה של מסיבה. מתאים לכל הגילים ולכל הרמות.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button 
@@ -572,7 +572,7 @@ export default function App() {
         <div className="max-w-4xl mx-auto px-6 flex flex-col items-center text-center gap-8">
           <div>
             <img src="/zumba-fitness-seeklogoonecolor.svg" alt="Zumba" className="h-16 mb-4 mx-auto filter brightness-0 invert" />
-            <p className="text-white text-lg">הצטרפו למסיבת הכושר הטובה ביותר בעיר.</p>
+            <p className="text-white text-lg">הצטרפו למסיבת הכושר הטובה ביותר.</p>
           </div>
           
           <div>
@@ -587,7 +587,7 @@ export default function App() {
               </button>
               
               <a 
-                href="mailto:shirangefen@gmail.com" 
+                href="mailto:shirangefen87@gmail.com" 
                 className="bg-white/10 p-4 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
                 aria-label="Email"
               >
