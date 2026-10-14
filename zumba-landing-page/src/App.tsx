@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Phone, Clock, User, CheckCircle, MapPin, ChevronDown, ChevronUp, Mail, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Phone, Clock, User, CheckCircle, MapPin, ChevronDown, ChevronUp, Mail, X, Loader2 } from 'lucide-react';
 import './App.css';
 
 type Page = 'home' | 'about' | 'schedule' | 'register' | 'faq';
@@ -9,7 +9,7 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isContactPopupOpen, setIsContactPopupOpen] = useState(false);
   
-  // הוספנו את שדה classType לטופס
+  // נתוני טופס הרשמה
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -20,76 +20,146 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
-  // State for FAQ Accordion
+  // נתונים דינמיים מגוגל שיטס
+  const [faqsList, setFaqsList] = useState<any[]>([]);
+  const [lessonsList, setLessonsList] = useState<any[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  // משיכת הנתונים מגוגל שיטס בעליית האתר
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // המזהה של הגיליון ששלחת
+        const SHEET_ID = '1mcPy9c3mcFlpI_-Igl__fnIeLqdNLfeh3iZLlaGhiek';
+        
+        // 1. משיכת שאלות נפוצות (FAQ)
+        const faqRes = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=FAQ`);
+        const faqText = await faqRes.text();
+        const faqJson = JSON.parse(faqText.substring(47).slice(0, -2));
+        const loadedFaqs = faqJson.table.rows.map((row: any) => ({
+          q: row.c[0]?.v || '',
+          a: row.c[1]?.v || ''
+        })).filter((item: any) => item.q !== ''); // סינון שורות ריקות
+
+        // 2. משיכת שיעורים (Lessons)
+        const lessonsRes = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Lessons`);
+        const lessonsText = await lessonsRes.text();
+        const lessonsJson = JSON.parse(lessonsText.substring(47).slice(0, -2));
+        const loadedLessons = lessonsJson.table.rows.map((row: any) => {
+          
+          // חיתוך שניות מהשעה אם יש (למשל 16:45:00 הופך ל- 16:45)
+          const formatTime = (timeStr: string) => {
+             if (typeof timeStr === 'string' && timeStr.split(':').length === 3) {
+                return timeStr.substring(0, 5);
+             }
+             return timeStr;
+          };
+
+          const startTime = row.c[1]?.f || row.c[1]?.v || '';
+          const endTime = row.c[2]?.f || row.c[2]?.v || '';
+
+          return {
+            name: row.c[0]?.v || '',
+            time: `${formatTime(startTime)} - ${formatTime(endTime)}`,
+            day: row.c[3]?.v || '',
+            trainer: row.c[4]?.v || '',
+            place: row.c[5]?.v || '',
+            link: 'https://waze.com/ul' // קבוע כרגע (ניתן להוסיף עמודת קישור בעתיד)
+          };
+        }).filter((item: any) => item.name !== '');
+
+        setFaqsList(loadedFaqs);
+        setLessonsList(loadedLessons);
+      } catch (error) {
+        console.error('Error fetching data from Google Sheets', error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); 
-    setIsSubmitting(true);
+      e.preventDefault(); 
+      setIsSubmitting(true);
 
-    try {
-      const GOOGLE_SHEET_API_URL = 'הכניסי_כאן_את_הכתובת_שתקבלי_משלב_הגוגל_שיטס'; 
-      
-      if (GOOGLE_SHEET_API_URL !== 'הכניסי_כאן_את_הכתובת_שתקבלי_משלב_הגוגל_שיטס') {
-        await fetch(GOOGLE_SHEET_API_URL, {
+      try {
+        const GOOGLE_SHEET_API_URL = '1mcPy9c3mcFlpI_-Igl__fnIeLqdNLfeh3iZLlaGhiek'; 
+        
+        if (GOOGLE_SHEET_API_URL == '1mcPy9c3mcFlpI_-Igl__fnIeLqdNLfeh3iZLlaGhiek') {
+          await fetch(GOOGLE_SHEET_API_URL, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              data: [
+                {
+                  'שם מלא': formData.name,
+                  'טלפון': formData.phone,
+                  'מייל': formData.email,
+                  'סוג שיעור': formData.classType
+                }
+              ]
+            })
+          });
+        }
+
+        // נתוני ההתחברות ל-EmailJS
+        const EMAILJS_SERVICE_ID = 'service_3fuopvh';
+        const EMAILJS_PUBLIC_KEY = 'PqtnW83lm59F-g6qk';
+
+        // בחירת תבנית המייל לפי סוג השיעור
+        let selectedTemplateId = '';
+        if (formData.classType === "זומבה קידס ג'וניור") {
+          selectedTemplateId = 'template_j6cwj79';
+        } else if (formData.classType === "זומבה אימהות ונערות") {
+          selectedTemplateId = 'template_xc1mbpd';
+        } else {
+          // גיבוי למקרה שיש שיעור חדש שנוסף לגוגל שיטס ועדיין אין לו תבנית ספציפית
+          selectedTemplateId = 'template_xc1mbpd'; 
+        }
+
+        const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
           method: 'POST',
           headers: {
-            'Accept': 'application/json',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            data: [
-              {
-                'שם מלא': formData.name,
-                'טלפון': formData.phone,
-                'מייל': formData.email,
-                'סוג שיעור': formData.classType // הנתון החדש נשלח לגוגל שיטס
-              }
-            ]
+            service_id: EMAILJS_SERVICE_ID,
+            template_id: selectedTemplateId,
+            user_id: EMAILJS_PUBLIC_KEY,
+            template_params: {
+              to_name: formData.name,
+              to_email: formData.email,
+              class_type: formData.classType
+            }
           })
         });
-      }
 
-      const EMAILJS_SERVICE_ID = 'service_3fuopvh';
-      const EMAILJS_TEMPLATE_ID = 'template_xc1mbpd';
-      const EMAILJS_PUBLIC_KEY = 'PqtnW83lm59F-g6qk';
+        if (!emailResponse.ok) {
+          const errorText = await emailResponse.text();
+          alert('הייתה בעיה בשליחת המייל: ' + errorText);
+          setIsSubmitting(false);
+          return;
+        }
 
-      const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          service_id: EMAILJS_SERVICE_ID,
-          template_id: EMAILJS_TEMPLATE_ID,
-          user_id: EMAILJS_PUBLIC_KEY,
-          template_params: {
-            to_name: formData.name,
-            to_email: formData.email,
-            class_type: formData.classType
-          }
-        })
-      });
-
-      if (!emailResponse.ok) {
-        const errorText = await emailResponse.text();
-        alert('הייתה בעיה בשליחת המייל: ' + errorText);
+        setIsSuccess(true);
+        
+      } catch (error) {
+        alert('אופס, משהו השתבש. אנא נסו שוב או צרו קשר טלפוני.');
+      } finally {
         setIsSubmitting(false);
-        return;
       }
-
-      setIsSuccess(true);
-      
-    } catch (error) {
-      alert('אופס, משהו השתבש. אנא נסו שוב או צרו קשר טלפוני.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    };
 
   const resetForm = () => {
     setIsSuccess(false);
@@ -105,21 +175,6 @@ export default function App() {
       setIsContactPopupOpen(true);
     }
   };
-
-  const faqs = [
-    { q: "מה זה זומבה אימהות-נערות?", a: "שעה מושלמת של ניתוק מוחלט. זהו שילוב מושלם של זמן איכות אימא-בת עם אנרגיות שיא וקצב מטורף! בשיעור אנחנו משאירות את המסכים בצד, מזיזות את הגוף, מחייכות ויוצרות חוויה משותפת ומקרבת. המוזיקה סוחפת, האווירה משפחתית ועוטפת, והחיוך לא יורד מהפנים. מוכנות לגלות כמה כיף לרקוד יחד?" },
-    { q: "מה זה זומבה קידס ג'וניור?", a: "חוויית תנועה, קצב ומשחק שתוכננה במיוחד עבור קטנטנים בני ארבע עד שש. השיעור משלב מיומנויות מוטוריות, פיתוח קואורדינציה וביטחון עצמי ששזורים במשחקים מקפיצים, שירים אהובים והמון שמחה. הקטנטנים לומדים לאהוב את עולם התנועה בדרך החווייתית והטבעית ביותר. הסקרנות שלהם מתעוררת כבר מהצליל הראשון, והחיוך איתו ישובו הביתה... הוא שווה הכול! רוצים לראות את הכוכב הפרטי שלכם זורח על הרחבה?" },
-    { q: "האם זומבה באמת נחשבת לאימון כושר אפקטיבי ששורף קלוריות?", a: "עוד איך! מדובר באימון אירובי מלא שמשלב עבודה על סיבולת לב-ריאה, חיזוק שרירים, עיצוב וגמישות- והכל תוך כדי ריקוד. בשעה אחת של זומבה אפשר לשרוף מאות קלוריות בלי להרגיש בכלל שהזמן עבר. הסוד הוא שכשרוקדים ונהנים, האימון מפסיק להיות מטלה, ולכן קל מאוד להתמיד ולהגיע לתוצאות מעולות. באה לשרוף קלוריות (ואת הרחבה) בחיוך?" },
-    { q: "מה מיוחד באווירה בסטודיו שלכן?", a: "הסטודיו שלנו הוא קודם כל בית חם, עוטף ומשפחתי. מעבר לריקוד ולכושר, אנחנו שואפות לייצר קהילה מדהימה של נשים, אימהות וילדים שתומכים, שמחים ומעלים את האנרגיה האחד לשני. אצלנו אין שום שיפוטיות או מבטים- רק פירגון הדדי, צחוק ושחרור אמיתי מתלאות היום. מחכות לראות אותך איתנו!" },
-    { q: "אין לי קואורדינציה, אני יכולה להצטרף לאימון?", a: "חד משמעית כן. אפילו תופתעי לגלות שזה המקום הכי נכון עבורך! בזומבה אין \"טעויות\"- יש צעדים בסגנון האישי והמיוחד שלך. אנחנו לא מודדות דיוק, אלא חוות את הקצב, מזיעות, מפתחות קואורדינציה בהדרגתיות ובעיקר משחררות. ברגע שתפתחי את הדלת ותתני למוזיקה להוביל, תראי שזה הרבה יותר קל ומהנה ממה שדמיינת. באה לעשות איתנו את הצעד הראשון?" },
-    { q: "האם נדרש ניסיון קודם בריקוד כדי להצטרף לאימון?", a: "ממש לא! השיעורים מותאמים לכולן ולכולם, מהצעד הראשון ועד לרקדנים מנוסים. התנועות פשוטות, קלילות ומחזוריות, כך שקל מאוד להתחבר ולזרום עם הקצב תוך שירים ספורים. כל מה שאת צריכה זה רצון לזוז, ליהנות ולהרגיש טוב עם עצמך. תתפלאי לראות כמה מהר תמצאי את הקצב שלך- מוזמנת להגיע ולגלות עד כמה זה פשוט!" },
-    { q: "מה צריך להביא לשיעור?", a: "בקבוק מים צונן, מגבת קטנה, נעלי ספורט נוחות והמון מצב רוח טוב! מומלץ לבוא בלבוש נוח שמאפשר לזוז בחופשיות ולהזיע בחיוך. את כל השאר- המוזיקה המקפיצה, האנרגיות המטורפות והחיוכים, אנחנו נספק. השיעור הראשון מלא בקצב, הפתעות וחיבור שפשוט אי אפשר להסביר במילים. אורזת תיק ובאה לחגוג איתנו?" },
-    { q: "מה עושים אם יש לי קצת חוסר ביטחון להשתחרר ולרקוד ליד כולן?", a: "הסוד של זומבה הוא שבמהלך השיעור כולן מרוכזות בעצמן, במוזיקה ובצעדים שלהן- ואף אחת לא מסתכלת סביב! הסטודיו שלנו הוא מרחב בטוח, מקבל ועוטף, שבו כל החששות נעלמים כבר בשיר הראשון. האווירה והאנרגיות על הרחבה הופכות את החלל למסיבה שבה כולן מרגישות הכי בבית בעולם. השיעור הראשון הוא בדיוק המקום לגלות איזה שחרור מופלא מחכה לך כשרק מעזים. מתי אנחנו נפגשות לרקוד ולשחרר הכול?" },
-    { q: "לא התעמלתי המון זמן, האם האימון מתאים לי?", a: "לחלוטין! הזומבה נבנתה בקצב שמאפשר לכל אחת ואחד להתקדם לפי הרמה האישית שלהם. בשיעור את קובעת את עוצמת התנועה- אפשר לקפוץ גבוה ואפשר לקחת צעדים מתונים יותר, הכול בהקשבה מלאה לגוף שלך. המטרה שלנו היא קודם כל ליהנות ולבנות סיבולת בהדרגתיות ובחיוך. כשתראי כמה מהר הגוף נזכר ונכנס למקצב, תופתעי בעצמך. באה לחזור לכושר בדרך הכי כיפית שיש?" },
-    { q: "אפשר להגיע לשיעור ניסיון לפני שנרשמים?", a: "ברור, ואפילו מומלץ בחום! הדרך הכי טובה להבין את האנרגיה, הקצב והאווירה הקהילתית שלנו היא פשוט לחוות אותה מקרוב על הרחבה. שיעור הניסיון ייתן לך טעם של עוד ויאפשר לך להרגיש אם זה החיבור הנכון עבורך- ללא שום התחייבות. כל מה שצריך זה לתאם איתנו מראש ולהגיע עם הרבה מצב רוח טוב. מוכנה לטעום מהקסם?" },
-    { q: "מאיזה גיל אפשר להצטרף לשיעורי הילדים והנוער?", a: "השיעורים שלנו מותאמים לקבוצות גיל שונות, החל מגילאי הגן והגיל הרך ועד לנערות ובוגרות! לכל קבוצת גיל יש את הקצב, המוזיקה והדגשים ההתפתחותיים המתאימים לה. בזכות ההתמחות המיוחדת שלי בתנועה לגיל הרך והניסיון שלי כמורה, הילדים מקבלים מעטפת מעצימה, בטוחה ומלאת שמחה. רוצה לדעת באיזו קבוצה הילד/ה שלך יפרחו? ספרי לנו בני כמה הם ונשמח להתאים!" },
-    { q: "אני רוצה להגיע לבד לשיעור אימהות ונערות – זה מתאים?", a: "ברור ולגמרי כן! הסטודיו שלנו פתוח ומחבק את כולן- אימהות, נערות ונשים שמגיעות לעשות משהו נפלא בשביל עצמן. שיעורי הבוגרות הם בדיוק המקום שלך להתנתק לרגע משגרת הבית, למלא מצברים ולפרגן לעצמך שעה של חופש, אנרגיות וכיף טהור. את ממש לא צריכה את הפרטנרית שלך כדי להיות חלק מהמשפחה שלנו. מוכנה לבוא לרקוד איתנו?" }
-  ];
 
   const renderContent = () => {
     switch (currentPage) {
@@ -212,26 +267,33 @@ export default function App() {
               <div className="w-24 h-2 bg-[#FDE026] mx-auto rounded-full"></div>
             </div>
             
-            <div className="space-y-4">
-              {faqs.map((faq, index) => (
-                <div key={index} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                  <button 
-                    onClick={() => toggleFaq(index)}
-                    className="w-full flex justify-between items-center p-5 text-right hover:bg-gray-50 transition-colors focus:outline-none"
-                  >
-                    <span className="font-bold text-[#2E2E2E] text-lg pr-4">{faq.q}</span>
-                    <div className="text-[#E81E76] bg-[#E81E76]/10 p-2 rounded-full flex-shrink-0">
-                      {openFaq === index ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </div>
-                  </button>
-                  {openFaq === index && (
-                    <div className="p-5 pt-0 text-gray-600 bg-gray-50/50 leading-relaxed border-t border-gray-100 animate-fade-in">
-                      {faq.a}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            {isLoadingData ? (
+              <div className="flex flex-col items-center justify-center py-12 text-[#E81E76]">
+                <Loader2 className="animate-spin mb-4" size={48} />
+                <p className="text-xl font-bold">טוען שאלות ותשובות...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {faqsList.map((faq, index) => (
+                  <div key={index} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <button 
+                      onClick={() => toggleFaq(index)}
+                      className="w-full flex justify-between items-center p-5 text-right hover:bg-gray-50 transition-colors focus:outline-none"
+                    >
+                      <span className="font-bold text-[#2E2E2E] text-lg pr-4">{faq.q}</span>
+                      <div className="text-[#E81E76] bg-[#E81E76]/10 p-2 rounded-full flex-shrink-0">
+                        {openFaq === index ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                      </div>
+                    </button>
+                    {openFaq === index && (
+                      <div className="p-5 pt-0 text-gray-600 bg-gray-50/50 leading-relaxed border-t border-gray-100 animate-fade-in">
+                        {faq.a}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
 
@@ -242,46 +304,48 @@ export default function App() {
               <h2 className="text-4xl font-black text-[#2E2E2E] mb-4">מערכת שעות</h2>
               <div className="w-24 h-2 bg-[#B7D928] mx-auto rounded-full"></div>
             </div>
-            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-              {[
-                { day: 'רביעי', time: '16:45 - 17:45', name: "זומבה קידס ג'וניור", place: 'מועדון חברים - מכמנים', trainer: 'שירן גפן', link: 'https://waze.com/ul' },
-                { day: 'רביעי', time: '18:00 - 19:00', name: 'זומבה אימהות ונערות', place: 'מועדון חברים - מכמנים', trainer: 'שירן גפן', link: 'https://waze.com/ul' },
-              ].map((cls, idx) => (
-                <div key={idx} className="flex flex-col md:flex-row justify-between items-center p-6 border-b border-gray-100 hover:bg-gray-50 transition-colors gap-6 md:gap-0">
-                  <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="bg-[#FDE026] text-[#2E2E2E] w-16 h-16 rounded-full flex flex-col items-center justify-center font-bold shadow-sm flex-shrink-0">
-                      <span>{cls.day}</span>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-[#2E2E2E]">{cls.name}</h3>
-                      <div className="flex items-center gap-2 text-gray-500 mt-1">
-                        <Clock size={16} className="text-[#B7D928]"/>
-                        <span>{cls.time}</span>
+            
+            {isLoadingData ? (
+              <div className="flex flex-col items-center justify-center py-12 text-[#B7D928]">
+                <Loader2 className="animate-spin mb-4" size={48} />
+                <p className="text-xl font-bold text-gray-600">טוען מערכת שעות...</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+                {lessonsList.map((cls, idx) => (
+                  <div key={idx} className="flex flex-col md:flex-row justify-between items-center p-6 border-b border-gray-100 hover:bg-gray-50 transition-colors gap-6 md:gap-0">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                      <div className="bg-[#FDE026] text-[#2E2E2E] w-16 h-16 rounded-full flex flex-col items-center justify-center font-bold shadow-sm flex-shrink-0">
+                        <span>{cls.day}</span>
                       </div>
-                      <a href={cls.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-500 mt-1 hover:text-[#E81E76] transition-colors w-fit">
-                        <MapPin size={16} className="text-[#E81E76]"/>
-                        <span>{cls.place}</span>
-                      </a>
+                      <div>
+                        <h3 className="text-xl font-bold text-[#2E2E2E]">{cls.name}</h3>
+                        <div className="flex items-center gap-2 text-gray-500 mt-1">
+                          <Clock size={16} className="text-[#B7D928]"/>
+                          <span dir="ltr">{cls.time}</span>
+                        </div>
+                        <a href={cls.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-500 mt-1 hover:text-[#E81E76] transition-colors w-fit">
+                          <MapPin size={16} className="text-[#E81E76]"/>
+                          <span>{cls.place}</span>
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between w-full md:w-auto gap-6">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <User size={16} className="text-[#E81E76]"/>
+                        <span>{cls.trainer}</span>
+                      </div>
+                      <button 
+                        onClick={() => setCurrentPage('register')}
+                        className="bg-[#2E2E2E] text-white px-6 py-2 rounded-full font-semibold hover:bg-black transition-colors"
+                      >
+                        הרשמה
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between w-full md:w-auto gap-6">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <User size={16} className="text-[#E81E76]"/>
-                      <span>{cls.trainer}</span>
-                    </div>
-                    <button 
-                      onClick={() => setCurrentPage('register')}
-                      className="bg-[#2E2E2E] text-white px-6 py-2 rounded-full font-semibold hover:bg-black transition-colors"
-                    >
-                      הרשמה
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-8 text-center text-gray-500">
-              <p>* מערכת השעות מתעדכנת מעת לעת. מומלץ ליצור קשר כדי לתאם שיעור ניסיון מראש.</p>
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         );
 
@@ -347,7 +411,6 @@ export default function App() {
                       />
                     </div>
                     
-                    {/* תפריט בחירת שיעור */}
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">לאיזה שיעור תרצו להצטרף?</label>
                       <select 
@@ -357,8 +420,17 @@ export default function App() {
                         className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-[#E81E76] focus:ring-1 focus:ring-[#E81E76] bg-white text-gray-700" 
                       >
                         <option value="" disabled>בחרי שיעור...</option>
-                        <option value="זומבה קידס ג'וניור">זומבה קידס ג'וניור</option>
-                        <option value="זומבה אימהות ונערות">זומבה אימהות ונערות</option>
+                        {/* השתמשנו ברשימת השיעורים שהבאנו מגוגל שיטס! */}
+                        {lessonsList.length > 0 ? (
+                           lessonsList.map((cls, idx) => (
+                             <option key={idx} value={cls.name}>{cls.name}</option>
+                           ))
+                        ) : (
+                           <>
+                             <option value="זומבה קידס ג'וניור">זומבה קידס ג'וניור</option>
+                             <option value="זומבה אימהות ונערות">זומבה אימהות ונערות</option>
+                           </>
+                        )}
                       </select>
                     </div>
 
@@ -495,40 +567,41 @@ export default function App() {
         {renderContent()}
       </main>
 
+      {/* פוטר מרכזי מיושר לאמצע */}
       <footer id="contact-footer" className="bg-[#2E2E2E] text-white py-12 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center text-center md:text-right">
+        <div className="max-w-4xl mx-auto px-6 flex flex-col items-center text-center gap-8">
           <div>
-            <img src="/zumba-fitness-seeklogoonecolor.svg" alt="Zumba" className="h-12 mb-4 mx-auto md:mx-0 filter brightness-0 invert" />
-            <p className="text-white">הצטרפו למסיבת הכושר הטובה ביותר בעיר.</p>
+            <img src="/zumba-fitness-seeklogoonecolor.svg" alt="Zumba" className="h-16 mb-4 mx-auto filter brightness-0 invert" />
+            <p className="text-white text-lg">הצטרפו למסיבת הכושר הטובה ביותר בעיר.</p>
           </div>
           
-          <div className="md:text-left">
-            <h4 className="text-xl font-bold !text-white mb-4">יצירת קשר / עקבו אחרינו</h4>
-            <div className="flex justify-center md:justify-end gap-4 flex-wrap">
+          <div>
+            <h4 className="text-2xl font-bold !text-white mb-6">דברו איתנו / עקבו אחרינו</h4>
+            <div className="flex justify-center gap-6 flex-wrap">
               <button 
                 onClick={handlePhoneClick}
-                className="bg-white/10 p-3 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
+                className="bg-white/10 p-4 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
                 aria-label="Phone"
               >
-                <Phone size={24} className="group-hover:scale-110 transition-transform" />
+                <Phone size={28} className="group-hover:scale-110 transition-transform" />
               </button>
               
               <a 
                 href="mailto:shirangefen@gmail.com" 
-                className="bg-white/10 p-3 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
+                className="bg-white/10 p-4 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
                 aria-label="Email"
               >
-                <Mail size={24} className="group-hover:scale-110 transition-transform" />
+                <Mail size={28} className="group-hover:scale-110 transition-transform" />
               </a>
 
               <a 
                 href="https://www.instagram.com/shiran.gefen/" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="bg-white/10 p-3 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
+                className="bg-white/10 p-4 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
                 aria-label="Instagram"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform">
                   <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
                   <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
                   <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
@@ -539,10 +612,10 @@ export default function App() {
                 href="https://www.facebook.com/shiranigorgefen" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="bg-white/10 p-3 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
+                className="bg-white/10 p-4 rounded-full hover:bg-[#E81E76] transition-colors text-white group"
                 aria-label="Facebook"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:scale-110 transition-transform">
                   <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
                 </svg>
               </a>
