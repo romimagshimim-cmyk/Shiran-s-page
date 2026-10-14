@@ -187,7 +187,7 @@ export default function App() {
                 הגיע הזמן <span className="text-[#B7D928]">לזומבה!</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-700 font-medium">
-               הצטרפו לקהילת הזומבה המובילה, שרפו קלוריות עם חיוך והיכנסו לכושר באווירה של מסיבה. מתאים לכל הגילים ולכל הרמות.
+               הצטרפו לקהילת הזומבה של מכמנים, שרפו קלוריות עם חיוך והיכנסו לכושר באווירה של מסיבה. מתאים לכל הגילים ולכל הרמות.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button 
