@@ -91,9 +91,9 @@ export default function App() {
       setIsSubmitting(true);
 
       try {
-        const GOOGLE_SHEET_API_URL = '1mcPy9c3mcFlpI_-Igl__fnIeLqdNLfeh3iZLlaGhiek'; 
+        const GOOGLE_SHEET_API_URL = 'https://sheetdb.io/api/v1/gnnnrjg5y964q'; 
         
-        if (GOOGLE_SHEET_API_URL == '1mcPy9c3mcFlpI_-Igl__fnIeLqdNLfeh3iZLlaGhiek') {
+        if (GOOGLE_SHEET_API_URL == 'https://sheetdb.io/api/v1/gnnnrjg5y964q') {
           await fetch(GOOGLE_SHEET_API_URL, {
             method: 'POST',
             headers: {
